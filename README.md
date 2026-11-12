@@ -98,17 +98,39 @@ Setting `COMPUTER_USE_LINUX_ENABLE_SHELL=1` turns the MCP server off, because th
   If a process there listens on its own Wayland socket (KWin, labwc or Sway), the server runs on that Wayland desktop; otherwise it runs on X11 (`DISPLAY`), including desktops that run on Xwayland in Wayland mode.
 - X11 window control needs `wmctrl`, which the webtop images do not ship.
   The mod adds it through linuxserver's package installer at container start, which needs network access.
-  Alpine packages it only in edge/testing, so the Alpine xfce and MATE webtops on X11 have screenshots and input but no window control; i3 and KDE use their own interfaces instead.
+  Alpine packages it only in edge/testing, so the Alpine xfce and MATE webtops have screenshots and input but no window control; i3, Sway, labwc and KDE use their own interfaces instead.
 
-  | Webtop        | X11 (default)        | Wayland (`PIXELFLUX_WAYLAND=true`)  |
-  |---------------|----------------------|-------------------------------------|
-  | `alpine-kde`  | n/a (Wayland only)   | KWin                                |
-  | `debian-kde`  | KWin, X11 (`wmctrl`) | KDE on Xwayland: KWin, X11          |
-  | `latest`      | no window control    | labwc                               |
-  | `alpine-mate` | no window control    | MATE on Xwayland: no window control |
-  | `alpine-i3`   | i3                   | Sway (i3 IPC)                       |
+  CI checks every Selkies webtop tag in both modes.
+  The table shows the window-control backends `doctor` reports; every case also has screenshots and input.
 
-  The table lists the window-control backend `doctor` reports; every case has screenshots and input.
+  | Webtop        | X11 (`PIXELFLUX_WAYLAND=false`) | Wayland (`PIXELFLUX_WAYLAND=true`) |
+  |---------------|---------------------------------|------------------------------------|
+  | `alpine-i3`   | i3                              | i3 (Sway), wlr-foreign-toplevel    |
+  | `alpine-kde`  | n/a, no X11 session             | KWin                               |
+  | `alpine-mate` | none                            | none (Xwayland)                    |
+  | `latest`      | none                            | labwc, wlr-foreign-toplevel        |
+  | `arch-i3`     | i3, X11                         | i3 (Sway), wlr-foreign-toplevel    |
+  | `arch-kde`    | n/a, no X11 session             | KWin                               |
+  | `arch-mate`   | X11                             | X11 (Xwayland)                     |
+  | `arch-xfce`   | X11                             | labwc, wlr-foreign-toplevel        |
+  | `debian-i3`   | i3                              | i3 (Sway), wlr-foreign-toplevel    |
+  | `debian-kde`  | KWin, X11                       | KWin, X11 (Xwayland)               |
+  | `debian-mate` | X11                             | X11 (Xwayland)                     |
+  | `debian-xfce` | X11                             | X11 (Xwayland)                     |
+  | `el-i3`       | i3, X11                         | i3, X11 (Xwayland)                 |
+  | `el-mate`     | X11                             | X11 (Xwayland)                     |
+  | `el-xfce`     | X11                             | X11 (Xwayland)                     |
+  | `fedora-i3`   | i3, X11                         | i3 (Sway), wlr-foreign-toplevel    |
+  | `fedora-kde`  | n/a, no X11 session             | KWin                               |
+  | `fedora-mate` | X11                             | X11 (Xwayland)                     |
+  | `fedora-xfce` | X11                             | X11 (Xwayland)                     |
+  | `ubuntu-i3`   | i3                              | i3 (Sway), wlr-foreign-toplevel    |
+  | `ubuntu-kde`  | KWin, X11                       | KWin                               |
+  | `ubuntu-lxqt` | X11                             | labwc, wlr-foreign-toplevel        |
+  | `ubuntu-mate` | X11                             | X11 (Xwayland)                     |
+  | `ubuntu-xfce` | X11                             | labwc, wlr-foreign-toplevel        |
+
+  On the `el-*` webtops pixelflux offers no computer-use route, so screenshots go through X11 and input through xdotool.
 
 ## Test
 
@@ -124,7 +146,7 @@ for t in tests/*/test.sh; do "$t"; done
 ```
 
 CI runs each test as its own job on amd64 and arm64.
-It also runs the sideload test on each desktop in the table above, on amd64, with `BASE_IMAGE` and `PIXELFLUX_WAYLAND` set for each:
+It also runs the sideload test on every desktop in the table above, on amd64, with `BASE_IMAGE` and `PIXELFLUX_WAYLAND` set for each:
 
 ```sh
 BASE_IMAGE=lscr.io/linuxserver/webtop:alpine-i3 PIXELFLUX_WAYLAND=true tests/sideload/test.sh
