@@ -56,23 +56,50 @@ jobs:
           TEST: ${{ matrix.test }}
         run: tests/"$TEST"/test.sh
 
-  # The sideload test on each webtop desktop, X11 and Wayland, amd64 only.
-  # Alpine packages no wmctrl, so X11 xfce and MATE there have no window control.
+  # The sideload test on every Selkies webtop desktop, in X11 and Wayland mode,
+  # amd64 only. ubuntu-xfce-kasm is KasmVNC, not Selkies, and dev is unreleased.
   desktop:
-    name: desktop ${{ matrix.image }}${{ matrix.wayland && ' wayland' || '' }}
+    name: desktop ${{ matrix.image }} ${{ matrix.mode }}
     strategy:
       fail-fast: false
       matrix:
+        image:
+          - alpine-i3
+          - alpine-kde
+          - alpine-mate
+          - latest  # Alpine XFCE
+          - arch-i3
+          - arch-kde
+          - arch-mate
+          - arch-xfce
+          - debian-i3
+          - debian-kde
+          - debian-mate
+          - debian-xfce
+          - el-i3
+          - el-mate
+          - el-xfce
+          - fedora-i3
+          - fedora-kde
+          - fedora-mate
+          - fedora-xfce
+          - ubuntu-i3
+          - ubuntu-kde
+          - ubuntu-lxqt
+          - ubuntu-mate
+          - ubuntu-xfce
+        mode: [x11, wayland]
+        exclude:
+          # These images no longer ship a KDE X11 session.
+          - {image: alpine-kde, mode: x11}
+          - {image: arch-kde, mode: x11}
+          - {image: fedora-kde, mode: x11}
         include:
-          - {image: alpine-kde, wayland: '', window_control: '1'}
-          - {image: latest, wayland: '', window_control: '0'}
-          - {image: latest, wayland: 'true', window_control: '1'}
-          - {image: alpine-mate, wayland: '', window_control: '0'}
-          - {image: alpine-mate, wayland: 'true', window_control: '0'}
-          - {image: alpine-i3, wayland: '', window_control: '1'}
-          - {image: alpine-i3, wayland: 'true', window_control: '1'}
-          - {image: debian-kde, wayland: '', window_control: '1'}
-          - {image: debian-kde, wayland: 'true', window_control: '1'}
+          # Alpine packages no wmctrl, and these desktops have no window
+          # manager interface of their own.
+          - {image: latest, mode: x11, window_control: '0'}
+          - {image: alpine-mate, mode: x11, window_control: '0'}
+          - {image: alpine-mate, mode: wayland, window_control: '0'}
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
@@ -96,12 +123,9 @@ jobs:
       - name: Run the sideload test on this desktop
         env:
           BASE_IMAGE: lscr.io/linuxserver/webtop:${{ matrix.image }}
-          WAYLAND: ${{ matrix.wayland }}
-          EXPECT_WINDOW_CONTROL: ${{ matrix.window_control }}
-        # An empty PIXELFLUX_WAYLAND would override the image's own default.
-        run: |
-          if [ -n "$WAYLAND" ]; then export PIXELFLUX_WAYLAND="$WAYLAND"; fi
-          tests/sideload/test.sh
+          PIXELFLUX_WAYLAND: ${{ matrix.mode == 'wayland' && 'true' || 'false' }}
+          EXPECT_WINDOW_CONTROL: ${{ matrix.window_control || '1' }}
+        run: tests/sideload/test.sh
 
   publish:
     needs: [install-path, desktop]
