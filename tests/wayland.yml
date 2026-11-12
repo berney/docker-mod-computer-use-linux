@@ -1,0 +1,7 @@
+# Added by lib.sh only when PIXELFLUX_WAYLAND is set. Compose versions differ
+# on a value-less passthrough (some send an empty string), and an empty value
+# turns off the image's own Wayland default.
+services:
+  webtop:
+    environment:
+      PIXELFLUX_WAYLAND: ${PIXELFLUX_WAYLAND}

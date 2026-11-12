@@ -7,6 +7,7 @@ EXPECT_WINDOW_CONTROL=0, a window-control backend.
 import json
 import os
 import sys
+import time
 import urllib.request
 
 url = os.environ.get("MCP_URL", "http://127.0.0.1:5200/mcp")
@@ -54,16 +55,23 @@ if "get_app_state" not in names:
     sys.exit(f"tools/list missing get_app_state: {names}")
 print(f"ok mcp tools={len(names)}")
 
-_, called = post({"jsonrpc": "2.0", "id": 3, "method": "tools/call",
-                  "params": {"name": "doctor", "arguments": {}}}, session)
-result = called[0]["result"]
-report = result.get("structuredContent") or json.loads(result["content"][0]["text"])
-caps = report.get("capabilities", {})
-summary = {key: caps.get(key) for key in ("screenshot", "input", "window_control")}
-print(f"doctor {json.dumps(summary)} blockers={report.get('blockers')}")
 required = ["screenshot", "input"]
 if os.environ.get("EXPECT_WINDOW_CONTROL", "1") != "0":
     required.append("window_control")
-missing = [key for key in required if not caps.get(key)]
+
+# The server answers once the session exists; a window manager such as KWin
+# can still be starting, so give doctor up to 60 s to report it.
+for attempt in range(13):
+    _, called = post({"jsonrpc": "2.0", "id": 3 + attempt, "method": "tools/call",
+                      "params": {"name": "doctor", "arguments": {}}}, session)
+    result = called[0]["result"]
+    report = result.get("structuredContent") or json.loads(result["content"][0]["text"])
+    caps = report.get("capabilities", {})
+    missing = [key for key in required if not caps.get(key)]
+    if not missing:
+        break
+    time.sleep(5)
+summary = {key: caps.get(key) for key in ("screenshot", "input", "window_control")}
+print(f"doctor {json.dumps(summary)} blockers={report.get('blockers')}")
 if missing:
     sys.exit(f"doctor reports no {', '.join(missing)}")

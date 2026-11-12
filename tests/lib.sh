@@ -36,7 +36,15 @@ push_mod() {
 }
 
 compose() {
-  docker compose -f "$fixture_dir/compose.yml" "$@"
+  local files=(-f "$fixture_dir/compose.yml")
+  if [[ -n ${PIXELFLUX_WAYLAND:-} ]]; then
+    files+=(-f "$tests_dir/wayland.yml")
+  fi
+  docker compose "${files[@]}" "$@"
+}
+
+mod_logs() {
+  compose logs webtop 2>&1 | grep -E 'mod-init|pkg-install|computer-use-linux' >&2 || true
 }
 
 down() {
@@ -57,7 +65,7 @@ wait_for_mcp() {
     sleep 2
   done
   echo "MCP did not answer on 127.0.0.1:${MCP_PORT}" >&2
-  compose logs webtop 2>&1 | grep 'mod-init' >&2 || true
+  mod_logs
   compose logs --tail 40 webtop >&2 || true
   return 1
 }
@@ -69,5 +77,8 @@ check_webtop() {
   docker cp "$goss" "$id":/tmp/goss
   docker cp "$tests_dir/goss.yaml" "$id":/tmp/goss.yaml
   docker exec "$id" /tmp/goss -g /tmp/goss.yaml validate
-  MCP_URL="http://127.0.0.1:${MCP_PORT}/mcp" "$tests_dir/mcp-ping.py"
+  if ! MCP_URL="http://127.0.0.1:${MCP_PORT}/mcp" "$tests_dir/mcp-ping.py"; then
+    mod_logs
+    return 1
+  fi
 }
