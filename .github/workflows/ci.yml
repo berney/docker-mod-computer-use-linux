@@ -1,4 +1,4 @@
-name: test
+name: ci
 
 on:
   push:
@@ -43,3 +43,25 @@ jobs:
         env:
           TEST: ${{ matrix.test }}
         run: tests/"$TEST"/test.sh
+
+  publish:
+    needs: install-path
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/bake-action@59cb1203cd42bcefd40a1b6d73b589e48c86040e # v7.5.0
+        env:
+          GIT_SHA: ${{ github.sha }}
+        with:
+          targets: publish
+          push: true

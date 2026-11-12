@@ -21,7 +21,7 @@ Grimoire sections for this project (a section not listed keeps its default):
 | Path              | What it is                                                                                      |
 |-------------------|-------------------------------------------------------------------------------------------------|
 | `Dockerfile`      | Downloads the upstream musl release, checks the sha256, and copies `root/` into a scratch image |
-| `docker-bake.hcl` | `mod` image and `tar` sideload tarball                                                          |
+| `docker-bake.hcl` | `mod` local image, `tar` sideload tarball, `publish` multi-arch push to ghcr.io                 |
 | `root/`           | s6 service files applied onto the desktop image                                                 |
 | `README.md`       | The three ways to apply the mod                                                                 |
 | `tests/`          | One fixture and `test.sh` per install path; `lib.sh`, `goss.yaml` and `mcp-ping.py` are shared  |

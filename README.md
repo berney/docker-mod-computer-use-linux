@@ -61,23 +61,22 @@ services:
 ### DOCKER_MODS from a registry
 
 `DOCKER_MODS` downloads only over HTTPS and applies only the first layer of the image, which is why the mod is one layer.
-Push the image to a registry you control, then set `DOCKER_MODS` in the same `compose.yml`:
-
-```sh
-docker bake --push --set mod.tags=ghcr.io/<you>/computer-use-linux-mod:0.7.53
-```
+CI publishes the image for amd64 and arm64 from `main` as `ghcr.io/berney/docker-mod-computer-use-linux`, tagged `latest`, the computer-use-linux release (`0.7.53`), and that release plus the commit (`0.7.53-<sha>`).
+Set `DOCKER_MODS` in the same `compose.yml`:
 
 ```yaml
     environment:
-      DOCKER_MODS: ghcr.io/<you>/computer-use-linux-mod:0.7.53
+      DOCKER_MODS: ghcr.io/berney/docker-mod-computer-use-linux:0.7.53
 ```
+
+To publish to your own registry, log in and run `IMAGE=<registry>/<name> docker bake --push publish`.
 
 ### Overlay image
 
 Copy the mod into your own image, for example a `baseimage-selkies` app:
 
 ```dockerfile
-FROM computer-use-linux-mod:dev AS computer-use-linux-mod
+FROM ghcr.io/berney/docker-mod-computer-use-linux:0.7.53 AS computer-use-linux-mod
 FROM ghcr.io/linuxserver/baseimage-selkies:debiantrixie
 COPY --link --from=computer-use-linux-mod / /
 ```
