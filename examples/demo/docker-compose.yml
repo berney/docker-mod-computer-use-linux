@@ -8,7 +8,6 @@ services:
     shm_size: 1gb
     environment:
       TZ: ${TZ:-UTC}
-      PIXELFLUX_WAYLAND: "true"
       # Downloaded and applied at container start.
       DOCKER_MODS: ghcr.io/berney/docker-mod-computer-use-linux:0.7.53
       COMPUTER_USE_LINUX_MCP_TOKEN: ${COMPUTER_USE_LINUX_MCP_TOKEN:?set COMPUTER_USE_LINUX_MCP_TOKEN in .env}

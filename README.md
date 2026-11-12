@@ -1,6 +1,6 @@
 # computer-use-linux linuxserver mod
 
-Adds the `computer-use-linux` MCP server to a linuxserver.io Selkies desktop (webtop, chrome, or anything built on `baseimage-selkies`).
+Adds the `computer-use-linux` MCP server to a linuxserver.io Selkies desktop that runs on Wayland with KWin or labwc, such as `webtop:alpine-kde`.
 The mod is one filesystem layer: two static binaries and an s6 service that starts `computer-use-linux mcp --listen` once the desktop is up.
 The desktop image itself stays as it is.
 The binaries are Avi Fenesh's [computer-use-linux](https://github.com/agent-sh/computer-use-linux), and the build fetches that release's licence with them into `/usr/share/licenses/computer-use-linux/LICENSE`.
@@ -94,6 +94,9 @@ Setting `COMPUTER_USE_LINUX_ENABLE_SHELL=1` turns the MCP server off, because th
 
 - Keep `PUID` and `PGID` the same as when the `/config` volume was created, or the desktop will not start.
 - The mod sets `PIXELFLUX_CU`, `PIXELFLUX_CU_TOKEN` and the accessibility variables when they are unset, so you don't need `PELORUS=true`.
+- The desktop must run in Wayland mode (`PIXELFLUX_WAYLAND=true`) with `kwin_wayland` or `labwc` as its compositor.
+  The alpine, arch, fedora and ubuntu KDE webtops and `ubuntu-lxqt` set `PIXELFLUX_WAYLAND=true` themselves; the other webtops default to X11.
+  On X11, or on `webtop:debian-kde` (which in Wayland mode still runs KDE on X11 inside Xwayland), the service logs `no abc-owned kwin_wayland or labwc` and MCP never starts.
 
 ## Test
 
