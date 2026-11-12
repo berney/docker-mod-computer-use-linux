@@ -25,6 +25,7 @@ To build another release, run `VERSION=<release> docker bake`.
 
 There are three ways to add the mod.
 The first is the one linuxserver.io documents for its own mods.
+For a ready-made desktop an agent can drive while you watch, see [`examples/demo`](examples/demo/README.md).
 
 ### DOCKER_MODS from a registry
 

@@ -25,6 +25,7 @@ Grimoire sections for this project (a section not listed keeps its default):
 | `root/`           | s6 service files applied onto the desktop image                                                 |
 | `README.md`       | The three ways to apply the mod                                                                 |
 | `tests/`          | One fixture and `test.sh` per install path; `lib.sh`, `goss.yaml` and `mcp-ping.py` are shared  |
+| `examples/demo/`  | A watched KDE desktop an agent drives over MCP; its own `AGENTS.md` adds the demo rules         |
 
 ## Project rules
 
@@ -44,6 +45,5 @@ Grimoire sections for this project (a section not listed keeps its default):
 - `/config`, `PUID` and `PGID` belong to linuxserver Selkies images.
   This mod does not invent them.
 - Each README install path (registry pull, sideload tar, Dockerfile `COPY`) has a fixture under `tests/`, and a change to one changes the other.
-  The demo repo only consumes the image.
-  Do not fold the demo into this repo to make the tests easier.
+- `examples/demo` only uses the published image; keep it free of build steps and test fixtures.
 - A change to how the image is applied updates the README in the same commit.

@@ -1,0 +1,26 @@
+# A fixed project name keeps the container and the /config volume the same
+# whichever directory compose runs from.
+name: computer-use-linux-demo
+
+services:
+  webtop:
+    image: lscr.io/linuxserver/webtop:alpine-kde
+    shm_size: 1gb
+    environment:
+      TZ: ${TZ:-UTC}
+      PIXELFLUX_WAYLAND: "true"
+      # Downloaded and applied at container start.
+      DOCKER_MODS: ghcr.io/berney/docker-mod-computer-use-linux:0.7.53
+      COMPUTER_USE_LINUX_MCP_TOKEN: ${COMPUTER_USE_LINUX_MCP_TOKEN:?set COMPUTER_USE_LINUX_MCP_TOKEN in .env}
+      # On-screen overlay showing each agent action to the person watching.
+      COMPUTER_USE_LINUX_INDICATOR: "1"
+    ports:
+      # Selkies web desktop, reachable over the LAN. It has no login by default.
+      - 3101:3001
+      # computer-use-linux MCP over plain HTTP. The bearer token is its only check.
+      - 127.0.0.1:5200:5200
+    volumes:
+      - config:/config
+
+volumes:
+  config:
