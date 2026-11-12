@@ -1,0 +1,13 @@
+services:
+  webtop:
+    build:
+      context: .
+      args:
+        MOD_IMAGE: ${MOD_IMAGE}
+        BASE_IMAGE: ${BASE_IMAGE}
+    image: cul-mod-test-overlay
+    shm_size: 1gb
+    environment:
+      COMPUTER_USE_LINUX_MCP_TOKEN: ${COMPUTER_USE_LINUX_MCP_TOKEN}
+    ports:
+      - 127.0.0.1:${MCP_PORT}:5200

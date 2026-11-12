@@ -1,0 +1,13 @@
+# The README's sideload example, with the tarball path relative to this file.
+services:
+  webtop:
+    image: ${BASE_IMAGE}
+    shm_size: 1gb
+    environment:
+      DOCKER_MODS: computer-use-linux
+      DOCKER_MODS_SIDELOAD: "true"
+      COMPUTER_USE_LINUX_MCP_TOKEN: ${COMPUTER_USE_LINUX_MCP_TOKEN}
+    volumes:
+      - ../../computer-use-linux.tar:/mods/computer-use-linux.tar:ro,z
+    ports:
+      - 127.0.0.1:${MCP_PORT}:5200

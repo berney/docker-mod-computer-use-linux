@@ -1,0 +1,31 @@
+# The README's registry example, served by a local HTTPS registry.
+# /docker-mods reads a name without a dot as a Docker Hub user, so the
+# registry answers as registry.test.
+services:
+  registry:
+    image: docker.io/library/registry:2
+    environment:
+      REGISTRY_HTTP_TLS_CERTIFICATE: /certs/cert.pem
+      REGISTRY_HTTP_TLS_KEY: /certs/key.pem
+    volumes:
+      - ./certs:/certs:ro,z
+    ports:
+      - 127.0.0.1:5050:5000
+    networks:
+      default:
+        aliases:
+          - registry.test
+
+  webtop:
+    build:
+      context: .
+      args:
+        BASE_IMAGE: ${BASE_IMAGE}
+    image: cul-mod-test-registry
+    profiles: [webtop]
+    shm_size: 1gb
+    environment:
+      DOCKER_MODS: registry.test:5000/computer-use-linux-mod:test
+      COMPUTER_USE_LINUX_MCP_TOKEN: ${COMPUTER_USE_LINUX_MCP_TOKEN}
+    ports:
+      - 127.0.0.1:${MCP_PORT}:5200

@@ -1,0 +1,45 @@
+name: test
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  install-path:
+    name: ${{ matrix.test }} (${{ matrix.arch }})
+    strategy:
+      fail-fast: false
+      matrix:
+        test: [sideload, registry, overlay]
+        arch: [amd64, arm64]
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+            goss_asset: goss_0.4.10_linux_x86_64.tar.gz
+            goss_sha256: 26e365428946294bcec0c61d867bb3c8349f39feb3d0e6f59084e98632785cc7
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+            goss_asset: goss_0.4.10_linux_arm64.tar.gz
+            goss_sha256: 90a59612b4d67d9f1a9038634c000790136bb82526a69de1e81ac075c2f6d2c6
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install goss
+        env:
+          GOSS_ASSET: ${{ matrix.goss_asset }}
+          GOSS_SHA256: ${{ matrix.goss_sha256 }}
+        run: |
+          curl -fsSLO "https://github.com/goss-org/goss/releases/download/v0.4.10/$GOSS_ASSET"
+          echo "$GOSS_SHA256  $GOSS_ASSET" | sha256sum -c
+          mkdir -p "$RUNNER_TEMP/bin"
+          tar -xzf "$GOSS_ASSET" -C "$RUNNER_TEMP/bin" goss
+          echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
+      - name: Build the mod
+        run: docker bake
+      - name: Run the test
+        env:
+          TEST: ${{ matrix.test }}
+        run: tests/"$TEST"/test.sh
