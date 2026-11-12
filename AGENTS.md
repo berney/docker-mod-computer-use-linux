@@ -34,6 +34,8 @@ Grimoire sections for this project (a section not listed keeps its default):
 - Download `computer-use-linux`, `computer-use-linux-indicator` and the upstream `LICENSE` from the agent-sh `v${VERSION}` tag inside the image build, and check the binaries' published sha256.
   Do not compile them here, and do not vendor the licence: MIT requires the notice of the release we ship.
 - The `VERSION` build arg in the Dockerfile and `docker-bake.hcl` names the same release.
+- Publish by pushing a git tag `v<VERSION>`, or `v<VERSION>-<n>` for a mod-only change to the same release; the image tag is the git tag without the `v`.
+  Pushes to `main` only run the tests, and bake refuses a tag that does not start with the `VERSION` it downloads.
 - The final stage is `scratch`.
   The fetch stage may be Alpine, because the build needs curl.
 - Use `COPY --link`.

@@ -6,9 +6,14 @@ variable "IMAGE" {
   default = "ghcr.io/berney/docker-mod-computer-use-linux"
 }
 
-# Set by CI to the commit being published; adds an immutable tag.
-variable "GIT_SHA" {
+# The git tag being published, v<VERSION> or v<VERSION>-<n> for a mod-only
+# release. Unset, publish tags the image <VERSION>.
+variable "GIT_TAG" {
   default = ""
+  validation {
+    condition     = GIT_TAG == "" || can(regex("^v${replace(VERSION, ".", "\\.")}(-[0-9]+)?$", GIT_TAG))
+    error_message = "GIT_TAG must be v<VERSION> or v<VERSION>-<n>, where VERSION is the computer-use-linux release in docker-bake.hcl."
+  }
 }
 
 group "default" {
@@ -38,11 +43,10 @@ target "tar" {
 target "publish" {
   inherits  = ["mod"]
   platforms = ["linux/amd64", "linux/arm64"]
-  tags = compact([
+  tags = [
     "${IMAGE}:latest",
-    "${IMAGE}:${VERSION}",
-    GIT_SHA != "" ? "${IMAGE}:${VERSION}-${substr(GIT_SHA, 0, 7)}" : "",
-  ])
+    "${IMAGE}:${GIT_TAG != "" ? trimprefix(GIT_TAG, "v") : VERSION}",
+  ]
   labels = {
     "org.opencontainers.image.source"   = "https://github.com/berney/docker-mod-computer-use-linux"
     "org.opencontainers.image.licenses" = "AGPL-3.0-or-later"

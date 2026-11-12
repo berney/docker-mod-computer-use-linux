@@ -30,8 +30,8 @@ For a ready-made desktop an agent can drive while you watch, see [`examples/demo
 ### DOCKER_MODS from a registry
 
 `DOCKER_MODS` downloads only over HTTPS and applies only the first layer of the image, which is why the mod is one layer.
-CI publishes the image from `main` for amd64 and arm64 as `ghcr.io/berney/docker-mod-computer-use-linux`.
-Its tags are `latest`, the computer-use-linux release (`0.7.53`), and the release plus the commit (`0.7.53-<sha>`).
+CI publishes the image for amd64 and arm64 as `ghcr.io/berney/docker-mod-computer-use-linux` when a `v*` tag is pushed and the tests pass.
+A git tag `v0.7.53` publishes the image tag `0.7.53`, a mod-only fix to the same release is tagged `v0.7.53-1`, and every release also moves `latest`.
 Put this in `compose.yml`:
 
 ```yaml
