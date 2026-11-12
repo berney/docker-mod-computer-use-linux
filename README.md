@@ -24,40 +24,42 @@ To build another release, run `VERSION=<release> docker bake`.
 ## Use it
 
 There are three ways to add the mod.
-
-### DOCKER_MODS, sideloaded (no registry)
-
-Put this in `compose.yml`.
-It mounts the tarball at `/mods/computer-use-linux.tar` and turns on sideloading:
-
-```yaml
-services:
-  webtop:
-    image: lscr.io/linuxserver/webtop:alpine-kde
-    environment:
-      DOCKER_MODS: computer-use-linux
-      DOCKER_MODS_SIDELOAD: "true"
-      COMPUTER_USE_LINUX_MCP_TOKEN: change-me
-    volumes:
-      - ./computer-use-linux.tar:/mods/computer-use-linux.tar:ro
-    ports:
-      - 127.0.0.1:3001:3001
-      - 127.0.0.1:5200:5200
-```
+The first is the one linuxserver.io documents for its own mods.
 
 ### DOCKER_MODS from a registry
 
 `DOCKER_MODS` downloads only over HTTPS and applies only the first layer of the image, which is why the mod is one layer.
 CI publishes the image from `main` for amd64 and arm64 as `ghcr.io/berney/docker-mod-computer-use-linux`.
 Its tags are `latest`, the computer-use-linux release (`0.7.53`), and the release plus the commit (`0.7.53-<sha>`).
-Set `DOCKER_MODS` in the same `compose.yml`:
+Put this in `compose.yml`:
 
 ```yaml
+services:
+  webtop:
+    image: lscr.io/linuxserver/webtop:alpine-kde
     environment:
       DOCKER_MODS: ghcr.io/berney/docker-mod-computer-use-linux:0.7.53
+      COMPUTER_USE_LINUX_MCP_TOKEN: change-me
+    ports:
+      - 127.0.0.1:3001:3001
+      - 127.0.0.1:5200:5200
 ```
 
 To publish to your own registry, log in and run `IMAGE=<registry>/<name> docker bake --push publish`.
+
+### DOCKER_MODS, sideloaded (no registry)
+
+Use this when the container cannot reach a registry, or to try a local build.
+Run `docker bake tar`, then mount the tarball at `/mods/computer-use-linux.tar` and turn on sideloading in the same `compose.yml`:
+
+```yaml
+    environment:
+      DOCKER_MODS: computer-use-linux
+      DOCKER_MODS_SIDELOAD: "true"
+      COMPUTER_USE_LINUX_MCP_TOKEN: change-me
+    volumes:
+      - ./computer-use-linux.tar:/mods/computer-use-linux.tar:ro
+```
 
 ### Overlay image
 
@@ -95,7 +97,7 @@ Setting `COMPUTER_USE_LINUX_ENABLE_SHELL=1` turns the MCP server off, because th
 ## Test
 
 Each way of adding the mod has a fixture and a script under `tests/`.
-`sideload` and `registry` use `compose.yml` files, and `overlay` uses a `Dockerfile`.
+`registry` and `sideload` use `compose.yml` files, and `overlay` uses a `Dockerfile`.
 Each script starts a desktop and runs `goss` inside it to check the files and that port 5200 is listening.
 It then sends a fixed MCP `initialize` and `tools/list` from the host.
 You need `goss` on `PATH` and `computer-use-linux-mod:dev` built:

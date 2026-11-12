@@ -43,7 +43,7 @@ Grimoire sections for this project (a section not listed keeps its default):
   Tell people to publish port 5200 on `127.0.0.1` only.
 - `/config`, `PUID` and `PGID` belong to linuxserver Selkies images.
   This mod does not invent them.
-- Each README install path (sideload tar, registry pull, Dockerfile `COPY`) has a fixture under `tests/`, and a change to one changes the other.
+- Each README install path (registry pull, sideload tar, Dockerfile `COPY`) has a fixture under `tests/`, and a change to one changes the other.
   The demo repo only consumes the image.
   Do not fold the demo into this repo to make the tests easier.
 - A change to how the image is applied updates the README in the same commit.

@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        test: [sideload, registry, overlay]
+        test: [registry, sideload, overlay]
         arch: [amd64, arm64]
         include:
           - arch: amd64
