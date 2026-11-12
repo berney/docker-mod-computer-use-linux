@@ -7,6 +7,8 @@ services:
       DOCKER_MODS: computer-use-linux
       DOCKER_MODS_SIDELOAD: "true"
       COMPUTER_USE_LINUX_MCP_TOKEN: ${COMPUTER_USE_LINUX_MCP_TOKEN}
+      # Passed through only when set, so the image's own default stays.
+      PIXELFLUX_WAYLAND:
     volumes:
       - ../../computer-use-linux.tar:/mods/computer-use-linux.tar:ro,z
     ports:

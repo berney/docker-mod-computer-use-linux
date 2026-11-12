@@ -1,6 +1,6 @@
 # computer-use-linux linuxserver mod
 
-Adds the `computer-use-linux` MCP server to a linuxserver.io Selkies desktop that runs on Wayland with KWin or labwc, such as `webtop:alpine-kde`.
+Adds the `computer-use-linux` MCP server to a linuxserver.io Selkies desktop such as webtop, in X11 or Wayland mode.
 The mod is one filesystem layer: two static binaries and an s6 service that starts `computer-use-linux mcp --listen` once the desktop is up.
 The desktop image itself stays as it is.
 The binaries are Avi Fenesh's [computer-use-linux](https://github.com/agent-sh/computer-use-linux), and the build fetches that release's licence with them into `/usr/share/licenses/computer-use-linux/LICENSE`.
@@ -94,16 +94,28 @@ Setting `COMPUTER_USE_LINUX_ENABLE_SHELL=1` turns the MCP server off, because th
 
 - Keep `PUID` and `PGID` the same as when the `/config` volume was created, or the desktop will not start.
 - The mod sets `PIXELFLUX_CU`, `PIXELFLUX_CU_TOKEN` and the accessibility variables when they are unset, so you don't need `PELORUS=true`.
-- The desktop must run in Wayland mode (`PIXELFLUX_WAYLAND=true`) with `kwin_wayland` or `labwc` as its compositor.
-  The alpine, arch, fedora and ubuntu KDE webtops and `ubuntu-lxqt` set `PIXELFLUX_WAYLAND=true` themselves; the other webtops default to X11.
-  On X11, or on `webtop:debian-kde` (which in Wayland mode still runs KDE on X11 inside Xwayland), the service logs `no abc-owned kwin_wayland or labwc` and MCP never starts.
+- The service finds the desktop under the launcher Selkies records in `/de-pid`.
+  If a process there listens on its own Wayland socket (KWin, labwc or Sway), the server runs on that Wayland desktop; otherwise it runs on X11 (`DISPLAY`), including desktops that run on Xwayland in Wayland mode.
+- X11 window control needs `wmctrl`, which the webtop images do not ship.
+  The mod adds it through linuxserver's package installer at container start, which needs network access.
+  Alpine packages it only in edge/testing, so the Alpine xfce and MATE webtops on X11 have screenshots and input but no window control; i3 and KDE use their own interfaces instead.
+
+  | Webtop        | X11 (default)        | Wayland (`PIXELFLUX_WAYLAND=true`)  |
+  |---------------|----------------------|-------------------------------------|
+  | `alpine-kde`  | n/a (Wayland only)   | KWin                                |
+  | `debian-kde`  | KWin, X11 (`wmctrl`) | KDE on Xwayland: KWin, X11          |
+  | `latest`      | no window control    | labwc                               |
+  | `alpine-mate` | no window control    | MATE on Xwayland: no window control |
+  | `alpine-i3`   | i3                   | Sway (i3 IPC)                       |
+
+  The table lists the window-control backend `doctor` reports; every case has screenshots and input.
 
 ## Test
 
 Each way of adding the mod has a fixture and a script under `tests/`.
 `registry` and `sideload` use `compose.yml` files, and `overlay` uses a `Dockerfile`.
 Each script starts a desktop and runs `goss` inside it to check the files and that port 5200 is listening.
-It then sends a fixed MCP `initialize` and `tools/list` from the host.
+It then sends a fixed MCP `initialize`, `tools/list` and `doctor` from the host, and fails unless `doctor` reports a screenshot route, an input route and a window-control backend (`EXPECT_WINDOW_CONTROL=0` drops the last).
 You need `goss` on `PATH`, `computer-use-linux-mod:dev`, and the sideload tarball:
 
 ```sh
@@ -112,6 +124,11 @@ for t in tests/*/test.sh; do "$t"; done
 ```
 
 CI runs each test as its own job on amd64 and arm64.
+It also runs the sideload test on each desktop in the table above, on amd64, with `BASE_IMAGE` and `PIXELFLUX_WAYLAND` set for each:
+
+```sh
+BASE_IMAGE=lscr.io/linuxserver/webtop:alpine-i3 PIXELFLUX_WAYLAND=true tests/sideload/test.sh
+```
 
 ## Licence
 

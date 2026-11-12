@@ -12,19 +12,100 @@ if [ "${COMPUTER_USE_LINUX_ENABLE_SHELL}" = "1" ]; then
   exit 0
 fi
 
-compositor=""
-for _ in $(seq 1 120); do
-  for candidate in $(pgrep -x kwin_wayland || true) $(pgrep -x labwc || true); do
-    owner=$(ps -o user= -p "${candidate}" | tr -d ' ')
-    if [ "${owner}" = "abc" ]; then
-      compositor="${candidate}"
-      break 2
-    fi
+runtime="${XDG_RUNTIME_DIR:-/config/.XDG}"
+
+# svc-de records the desktop launcher's pid in /de-pid in both X11 and Wayland
+# mode; the desktop is that process and everything under it.
+de_tree() {
+  local -A kids=()
+  local stat line pid ppid kid
+  for stat in /proc/[0-9]*/stat; do
+    read -r line 2>/dev/null <"${stat}" || continue
+    pid=${stat#/proc/}
+    pid=${pid%/stat}
+    ppid=${line##*) }
+    ppid=${ppid#* }
+    kids[${ppid%% *}]+="${pid} "
   done
+  local queue=("$1") out=()
+  while ((${#queue[@]})); do
+    pid=${queue[0]}
+    queue=("${queue[@]:1}")
+    out+=("${pid}")
+    for kid in ${kids[${pid}]:-}; do
+      queue+=("${kid}")
+    done
+  done
+  echo "${out[@]}"
+}
+
+# Reading another process's environ and fds needs its owner, abc.
+session_env() {
+  # shellcheck disable=SC2016 # the pid arrives as "$1", never spliced into the script
+  s6-setuidgid abc sh -c 'tr "\0" "\n" < /proc/"$1"/environ' sh "$1" 2>/dev/null
+}
+
+# Prints "<pid> wayland-N" for the first given process that listens on a
+# Wayland socket in the runtime dir: a compositor the desktop runs nested in
+# pixelflux's. pixelflux's own socket belongs to Selkies, outside the desktop,
+# and a stale socket file has no /proc/net/unix entry.
+nested_compositor() {
+  local -A names=()
+  local inode path pid link
+  while read -r inode path; do
+    names[${inode}]=${path##*/}
+  done < <(awk -v dir="${runtime}/" '$6 == "01" && index($8, dir) == 1 && $8 ~ /\/wayland-[0-9]+$/ { print $7, $8 }' /proc/net/unix)
+  ((${#names[@]})) || return 1
+  for pid in "$@"; do
+    # shellcheck disable=SC2016 # the pid arrives as "$1", never spliced into the script
+    while read -r link; do
+      inode=${link#socket:[}
+      inode=${inode%]}
+      if [ -n "${names[${inode}]:-}" ]; then
+        echo "${pid} ${names[${inode}]}"
+        return 0
+      fi
+    done < <(s6-setuidgid abc sh -c 'readlink /proc/"$1"/fd/* 2>/dev/null' sh "${pid}" | grep '^socket:\[')
+  done
+  return 1
+}
+
+# A nested compositor means a Wayland desktop. Without one the desktop is X11,
+# on Xvfb or on Xwayland inside pixelflux. In Wayland mode the compositor can
+# take a moment to listen after the session starts, so wait 10 s before
+# settling on X11 there.
+mode=""
+source=""
+wayland=""
+session_seen=""
+for tick in $(seq 1 240); do
+  de=$(cat /de-pid 2>/dev/null)
+  if [ -n "${de}" ] && kill -0 "${de}" 2>/dev/null; then
+    read -r -a tree <<<"$(de_tree "${de}")"
+    if hit=$(nested_compositor "${tree[@]}"); then
+      source=${hit%% *}
+      wayland=${hit#* }
+      mode=wayland
+      break
+    fi
+    if [ -z "${session_seen}" ]; then
+      for pid in "${tree[@]}"; do
+        if session_env "${pid}" | grep -q '^DBUS_SESSION_BUS_ADDRESS='; then
+          source=${pid}
+          session_seen=${tick}
+          break
+        fi
+      done
+    fi
+    if [ -n "${session_seen}" ] && { [ "${PIXELFLUX_WAYLAND,,}" != "true" ] || ((tick - session_seen >= 20)); }; then
+      mode=x11
+      break
+    fi
+  fi
   sleep 0.5
 done
-if [ -z "${compositor}" ]; then
-  echo "computer-use-linux: no abc-owned kwin_wayland or labwc"
+if [ -z "${mode}" ]; then
+  echo "computer-use-linux: no desktop session with a D-Bus session bus under /de-pid"
   exit 1
 fi
 
@@ -32,73 +113,55 @@ while IFS= read -r item; do
   key="${item%%=*}"
   value="${item#*=}"
   case "${key}" in
-    DBUS_SESSION_BUS_ADDRESS | WAYLAND_DISPLAY | XDG_RUNTIME_DIR | DISPLAY)
+    DBUS_SESSION_BUS_ADDRESS | XDG_RUNTIME_DIR | DISPLAY)
       export "${key}=${value}"
-      printf '%s' "${value}" > "/run/s6/container_environment/${key}"
+      printf '%s' "${value}" >"/run/s6/container_environment/${key}"
       ;;
-    # Session identity picks the KWin/labwc paths; export only, so other services keep theirs.
+    # Session identity picks the desktop's window and input paths; export
+    # only, so other services keep theirs.
     XDG_CURRENT_DESKTOP | XDG_SESSION_TYPE | XDG_SESSION_DESKTOP | DESKTOP_SESSION)
       export "${key}=${value}"
       ;;
   esac
-done < <(s6-setuidgid abc sh -c "tr '\\0' '\\n' < /proc/${compositor}/environ")
-# True once the compositor itself listens on $1. A stale socket file left in
-# /config/.XDG has no /proc/net/unix entry, and pixelflux's own wayland-N
-# belongs to another process. Reading /proc/<pid>/fd needs the owner, abc.
-compositor_listens_on() {
-  local inode
-  inode=$(awk -v path="$1" '$6 == "01" && $8 == path { print $7 }' /proc/net/unix)
-  [ -n "${inode}" ] || return 1
-  # shellcheck disable=SC2016 # the pid arrives as "$1", never spliced into the script
-  s6-setuidgid abc sh -c 'readlink /proc/"$1"/fd/* 2>/dev/null' sh "${compositor}" |
-    grep -Fqx "socket:[${inode}]"
-}
+done < <(session_env "${source}")
 
-# The compositor process exists before its session socket does (labwc took
-# ~110 ms on 30 Oct 2026); losing that race left the server and overlay on
-# the outer pixelflux output. Exiting lets s6 restart the service and retry.
-socket="${XDG_RUNTIME_DIR}/wayland-0"
-listening=""
-for _ in $(seq 1 50); do
-  if compositor_listens_on "${socket}"; then
-    listening=1
-    break
-  fi
-  sleep 0.1
-done
-if [ -z "${listening}" ]; then
-  echo "computer-use-linux: compositor ${compositor} is not listening on ${socket}"
-  exit 1
+if [ "${mode}" = "wayland" ]; then
+  export WAYLAND_DISPLAY="${wayland}"
+  printf '%s' "${wayland}" >/run/s6/container_environment/WAYLAND_DISPLAY
+else
+  # computer-use-linux takes DISPLAY plus XDG_SESSION_TYPE=x11 as native X11;
+  # pixelflux's WAYLAND_DISPLAY would send it down the Wayland paths instead.
+  unset WAYLAND_DISPLAY
+  export DISPLAY="${DISPLAY:-:1}" XDG_SESSION_TYPE=x11
 fi
-export WAYLAND_DISPLAY=wayland-0
-printf '%s' wayland-0 > /run/s6/container_environment/WAYLAND_DISPLAY
+echo "computer-use-linux: ${mode} desktop, session pid ${source}${wayland:+, ${wayland}}, DISPLAY=${DISPLAY:-unset}"
 
 s6-setuidgid abc dbus-send --session --dest=org.a11y.Bus --type=method_call \
   /org/a11y/bus org.freedesktop.DBus.Properties.Set \
   string:org.a11y.Status string:IsEnabled variant:boolean:true || true
 
-comm=$(s6-setuidgid abc sh -c "tr '\\0' '\\n' < /proc/${compositor}/comm")
-if [ "${comm}" = "labwc" ]; then
-  if ! s6-setuidgid abc dbus-send --session --print-reply --dest=org.freedesktop.DBus \
-    /org/freedesktop/DBus org.freedesktop.DBus.NameHasOwner \
-    string:org.a11y.atspi.Registry 2>/dev/null | grep -q 'boolean true'; then
-    registry=/usr/libexec/at-spi2-registryd
-    [ -x "${registry}" ] || registry=/usr/lib/at-spi2/at-spi2-registryd
+# KDE and GNOME start the AT-SPI registry themselves; labwc, Sway and the X11
+# window managers do not.
+if ! s6-setuidgid abc dbus-send --session --print-reply --dest=org.freedesktop.DBus \
+  /org/freedesktop/DBus org.freedesktop.DBus.NameHasOwner \
+  string:org.a11y.atspi.Registry 2>/dev/null | grep -q 'boolean true'; then
+  for registry in /usr/libexec/at-spi2-registryd /usr/lib/at-spi2/at-spi2-registryd /usr/lib/at-spi2-core/at-spi2-registryd; do
     if [ -x "${registry}" ]; then
       s6-setuidgid abc "${registry}" &
+      break
     fi
-  fi
+  done
 fi
 
 (
-  while kill -0 "${compositor}" 2>/dev/null; do
+  while kill -0 "${source}" 2>/dev/null; do
     sleep 1
   done
   kill $$ 2>/dev/null || true
 ) &
 
 # A non-loopback bind needs at least one Host name; default to this container's hostname.
-IFS=', ' read -r -a hosts <<< "${COMPUTER_USE_LINUX_MCP_ALLOWED_HOSTS:-${HOSTNAME}}"
+IFS=', ' read -r -a hosts <<<"${COMPUTER_USE_LINUX_MCP_ALLOWED_HOSTS:-${HOSTNAME}}"
 allowed=()
 for host in "${hosts[@]}"; do
   allowed+=(--allowed-host "${host}")
