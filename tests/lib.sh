@@ -1,5 +1,5 @@
 # shellcheck shell=bash
-# Sets repo_dir and push_flags for the test scripts; they set fixture_dir before sourcing.
+# Sets repo_dir and push_mod for the test scripts; they set fixture_dir before sourcing.
 # shellcheck disable=SC2034,SC2154
 # Shared by tests/*/test.sh: start a fixture with compose, then check the
 # running desktop with goss and one hardcoded MCP exchange.
@@ -21,12 +21,19 @@ if ! docker image inspect "$MOD_IMAGE" >/dev/null; then
   exit 1
 fi
 
-# podman pushes OCI manifests by default, and /docker-mods asks only for
-# Docker v2 manifests, so the registry would answer 404.
-push_flags=()
-if docker info 2>/dev/null | grep -qi podman; then
-  push_flags=(--format v2s2)
-fi
+# /docker-mods asks registries only for a Docker v2 manifest or an index.
+# podman and Docker 29 (containerd image store) push a single OCI manifest,
+# which the registry then refuses with 404, so push Docker v2 explicitly.
+push_mod() {
+  local ref=$1
+  if docker info 2>/dev/null | grep -qi podman; then
+    docker tag "$MOD_IMAGE" "$ref"
+    docker push --format v2s2 "$ref"
+  else
+    skopeo copy --format v2s2 --dest-tls-verify=false \
+      "docker-daemon:$MOD_IMAGE" "docker://$ref"
+  fi
+}
 
 compose() {
   docker compose -f "$fixture_dir/compose.yml" "$@"
@@ -50,6 +57,7 @@ wait_for_mcp() {
     sleep 2
   done
   echo "MCP did not answer on 127.0.0.1:${MCP_PORT}" >&2
+  compose logs webtop 2>&1 | grep 'mod-init' >&2 || true
   compose logs --tail 40 webtop >&2 || true
   return 1
 }

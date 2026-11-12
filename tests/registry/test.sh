@@ -23,12 +23,11 @@ for _ in $(seq 1 30); do
   curl -fsS --cacert "$certs/cert.pem" https://127.0.0.1:5050/v2/ >/dev/null 2>&1 && break
   sleep 0.5
 done
-# podman reads the CA from here; Docker treats 127.0.0.0/8 as an insecure registry.
+# podman reads the CA from here; Docker and skopeo skip TLS checks for this push.
 ca_dir="${XDG_CONFIG_HOME:-$HOME/.config}/containers/certs.d/127.0.0.1:5050"
 mkdir -p "$ca_dir"
 cp "$certs/cert.pem" "$ca_dir/ca.crt"
-docker tag "$MOD_IMAGE" 127.0.0.1:5050/computer-use-linux-mod:test
-docker push "${push_flags[@]}" 127.0.0.1:5050/computer-use-linux-mod:test
+push_mod 127.0.0.1:5050/computer-use-linux-mod:test
 
 compose --profile webtop up -d --build webtop
 check_webtop
