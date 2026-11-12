@@ -100,10 +100,10 @@ Each way of adding the mod has a fixture and a script under `tests/`.
 `registry` and `sideload` use `compose.yml` files, and `overlay` uses a `Dockerfile`.
 Each script starts a desktop and runs `goss` inside it to check the files and that port 5200 is listening.
 It then sends a fixed MCP `initialize` and `tools/list` from the host.
-You need `goss` on `PATH` and `computer-use-linux-mod:dev` built:
+You need `goss` on `PATH`, `computer-use-linux-mod:dev`, and the sideload tarball:
 
 ```sh
-docker bake
+docker bake mod tar
 for t in tests/*/test.sh; do "$t"; done
 ```
 

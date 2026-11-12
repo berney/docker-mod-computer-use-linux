@@ -17,11 +17,11 @@ jobs:
         arch: [amd64, arm64]
         include:
           - arch: amd64
-            runner: ubuntu-24.04
+            runner: ubuntu-26.04
             goss_asset: goss_0.4.10_linux_x86_64.tar.gz
             goss_sha256: 26e365428946294bcec0c61d867bb3c8349f39feb3d0e6f59084e98632785cc7
           - arch: arm64
-            runner: ubuntu-24.04-arm
+            runner: ubuntu-26.04-arm
             goss_asset: goss_0.4.10_linux_arm64.tar.gz
             goss_sha256: 90a59612b4d67d9f1a9038634c000790136bb82526a69de1e81ac075c2f6d2c6
     runs-on: ${{ matrix.runner }}
@@ -37,8 +37,18 @@ jobs:
           mkdir -p "$RUNNER_TEMP/bin"
           tar -xzf "$GOSS_ASSET" -C "$RUNNER_TEMP/bin" goss
           echo "$RUNNER_TEMP/bin" >> "$GITHUB_PATH"
-      - name: Build the mod
-        run: docker bake
+      # A separate builder for bake, so compose build in the tests still
+      # uses the local image store and sees computer-use-linux-mod:dev.
+      - id: buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          use: false
+      - name: Build the mod image and sideload tarball
+        uses: docker/bake-action@59cb1203cd42bcefd40a1b6d73b589e48c86040e # v7.5.0
+        with:
+          builder: ${{ steps.buildx.outputs.name }}
+          source: .
+          targets: mod,tar
       - name: Run the test
         env:
           TEST: ${{ matrix.test }}
@@ -47,7 +57,7 @@ jobs:
   publish:
     needs: install-path
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     permissions:
       contents: read
       packages: write

@@ -5,7 +5,11 @@ fixture_dir=$(cd "$(dirname "$0")" && pwd)
 source "$fixture_dir/../lib.sh"
 trap down EXIT
 
-(cd "$repo_dir" && docker bake tar)
+tarball="$repo_dir/computer-use-linux.tar"
+if [[ ! -s $tarball ]]; then
+  echo "missing $tarball; run docker bake tar first" >&2
+  exit 1
+fi
 down
 compose up -d
 check_webtop
