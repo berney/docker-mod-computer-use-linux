@@ -23,7 +23,7 @@ fi
 
 pull_image() {
   if ! docker image inspect "$1" >/dev/null 2>&1; then
-    "$repo_dir/scripts/retry.sh" docker pull "$1"
+    "$repo_dir/scripts/retry.sh" timeout --kill-after=10s 3m docker pull "$1"
   fi
 }
 

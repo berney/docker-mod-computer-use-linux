@@ -151,6 +151,9 @@ CI runs each test as its own job on amd64 and arm64.
 It also runs the sideload test on every desktop in the table above, on amd64, with `BASE_IMAGE` and `PIXELFLUX_WAYLAND` set for each.
 Desktop jobs are capped at eight per workflow.
 Fixture image pulls get five attempts with exponential backoff (10, 20, 40 and 80 seconds, plus up to five seconds of jitter); cached images are reused.
+Each pull attempt has a three-minute limit, followed by up to ten seconds to terminate before a forced kill.
+Logs show each attempt's start, elapsed seconds and exit code, including successful attempts, so the limit can be adjusted from observed timings.
+CI jobs have a 30-minute outer timeout.
 Only image pulls and goss readiness checks are retried; MCP capability assertions are not.
 
 For example:

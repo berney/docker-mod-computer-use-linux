@@ -44,4 +44,21 @@ test ! -e "$work/result"
 mapfile -t delays < "$work/sleeps"
 test "${#delays[@]}" = 4
 ((delays[2] >= 40 && delays[2] <= 45 && delays[3] >= 80 && delays[3] <= 85))
+
+# Exercise real hung processes; only the backoff sleep above is stubbed.
+hanging_operation() { operation "$@" || command sleep 30; }
+export -f hanging_operation
+rm "$work/attempts" "$work/sleeps"
+bash "$repo_dir/scripts/retry.sh" timeout --kill-after=1s 1s \
+  bash -c 'hanging_operation "$@"' _ 3 recovered
+test "$(cat "$work/attempts")" = 3
+test "$(cat "$work/result")" = recovered
+
+rm "$work/attempts" "$work/result" "$work/sleeps"
+status=0
+bash "$repo_dir/scripts/retry.sh" timeout --kill-after=1s 1s \
+  bash -c 'hanging_operation "$@"' _ 99 unreachable || status=$?
+test "$status" = 124
+test "$(cat "$work/attempts")" = 5
+test ! -e "$work/result"
 echo 'ok retry'

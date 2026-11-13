@@ -27,6 +27,7 @@ jobs:
             goss_asset: goss_0.4.10_linux_arm64.tar.gz
             goss_sha256: 90a59612b4d67d9f1a9038634c000790136bb82526a69de1e81ac075c2f6d2c6
     runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Check network retry policy
@@ -98,6 +99,7 @@ jobs:
           - {image: arch-kde, mode: x11}
           - {image: fedora-kde, mode: x11}
     runs-on: ubuntu-26.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Install goss
@@ -127,6 +129,7 @@ jobs:
     needs: [install-path, desktop]
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-26.04
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
