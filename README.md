@@ -39,7 +39,7 @@ services:
   webtop:
     image: lscr.io/linuxserver/webtop:alpine-kde
     environment:
-      DOCKER_MODS: ghcr.io/berney/docker-mod-computer-use-linux:0.7.53-2
+      DOCKER_MODS: ghcr.io/berney/docker-mod-computer-use-linux:0.7.53-3
       COMPUTER_USE_LINUX_MCP_TOKEN: change-me
     ports:
       - 127.0.0.1:3001:3001
@@ -67,7 +67,7 @@ Run `docker bake tar`, then mount the tarball at `/mods/computer-use-linux.tar` 
 Copy the mod into your own image, for example a `baseimage-selkies` app:
 
 ```dockerfile
-FROM ghcr.io/berney/docker-mod-computer-use-linux:0.7.53-2 AS computer-use-linux-mod
+FROM ghcr.io/berney/docker-mod-computer-use-linux:0.7.53-3 AS computer-use-linux-mod
 FROM ghcr.io/linuxserver/baseimage-selkies:debiantrixie
 COPY --link --from=computer-use-linux-mod / /
 ```
