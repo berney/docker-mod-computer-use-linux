@@ -9,7 +9,7 @@ services:
     environment:
       TZ: ${TZ:-UTC}
       # Downloaded and applied at container start.
-      DOCKER_MODS: ghcr.io/berney/docker-mod-computer-use-linux:0.7.53-3
+      DOCKER_MODS: ghcr.io/berney/docker-mod-computer-use-linux:0.7.53-4
       COMPUTER_USE_LINUX_MCP_TOKEN: ${COMPUTER_USE_LINUX_MCP_TOKEN:?set COMPUTER_USE_LINUX_MCP_TOKEN in .env}
       # On-screen overlay showing each agent action to the person watching.
       COMPUTER_USE_LINUX_INDICATOR: "1"

@@ -39,7 +39,7 @@ services:
   webtop:
     image: lscr.io/linuxserver/webtop:alpine-kde
     environment:
-      DOCKER_MODS: ghcr.io/berney/docker-mod-computer-use-linux:0.7.53-3
+      DOCKER_MODS: ghcr.io/berney/docker-mod-computer-use-linux:0.7.53-4
       COMPUTER_USE_LINUX_MCP_TOKEN: change-me
     ports:
       - 127.0.0.1:3001:3001
@@ -67,7 +67,7 @@ Run `docker bake tar`, then mount the tarball at `/mods/computer-use-linux.tar` 
 Copy the mod into your own image, for example a `baseimage-selkies` app:
 
 ```dockerfile
-FROM ghcr.io/berney/docker-mod-computer-use-linux:0.7.53-3 AS computer-use-linux-mod
+FROM ghcr.io/berney/docker-mod-computer-use-linux:0.7.53-4 AS computer-use-linux-mod
 FROM ghcr.io/linuxserver/baseimage-selkies:debiantrixie
 COPY --link --from=computer-use-linux-mod / /
 ```
@@ -138,6 +138,7 @@ Setting `COMPUTER_USE_LINUX_ENABLE_SHELL=1` turns the MCP server off, because th
 Each way of adding the mod has a fixture and a script under `tests/`.
 `registry` and `sideload` use `compose.yml` files, and `overlay` uses a `Dockerfile`.
 Each script starts a desktop and runs `goss` inside it to check the files and that port 5200 is listening.
+Goss retries failing checks for up to 60 seconds, sleeping two seconds between attempts; recovery exits successfully, while retry timeout exits non-zero.
 It then sends a fixed MCP `initialize`, `tools/list` and `doctor` from the host, and fails unless `doctor` reports a screenshot route, an input route and a window-control backend (`EXPECT_WINDOW_CONTROL=0` drops the last).
 You need `goss` on `PATH`, `computer-use-linux-mod:dev`, and the sideload tarball:
 
@@ -150,7 +151,7 @@ CI runs each test as its own job on amd64 and arm64.
 It also runs the sideload test on every desktop in the table above, on amd64, with `BASE_IMAGE` and `PIXELFLUX_WAYLAND` set for each.
 Desktop jobs are capped at eight per workflow.
 Fixture image pulls get five attempts with exponential backoff (10, 20, 40 and 80 seconds, plus up to five seconds of jitter); cached images are reused.
-Tests themselves are not retried, and the job fails if the pulls exhaust their attempts.
+Only image pulls and goss readiness checks are retried; MCP capability assertions are not.
 
 For example:
 

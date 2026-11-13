@@ -85,7 +85,7 @@ check_webtop() {
   wait_for_mcp
   docker cp "$goss" "$id":/tmp/goss
   docker cp "$tests_dir/goss.yaml" "$id":/tmp/goss.yaml
-  docker exec "$id" /tmp/goss -g /tmp/goss.yaml validate
+  docker exec "$id" /tmp/goss -g /tmp/goss.yaml validate --retry-timeout 60s --sleep 2s
   if ! MCP_URL="http://127.0.0.1:${MCP_PORT}/mcp" "$tests_dir/mcp-ping.py"; then
     mod_logs
     return 1

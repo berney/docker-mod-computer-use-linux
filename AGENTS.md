@@ -36,6 +36,8 @@ Grimoire sections for this project (a section not listed keeps its default):
 - The `VERSION` build arg in the Dockerfile and `docker-bake.hcl` names the same release.
 - Publish by pushing a git tag `v<VERSION>`, or `v<VERSION>-<n>` for a mod-only change to the same release; the image tag is the git tag without the `v`.
   Pushes to `main` only run the tests, and bake refuses a tag that does not start with the `VERSION` it downloads.
+- README install examples and `examples/demo/docker-compose.yml` must always pin the latest release tag.
+  Update both in the release commit before creating and pushing its git tag.
 - The final stage is `scratch`.
   The fetch stage may be Alpine, because the build needs curl.
 - Use `COPY --link`.
