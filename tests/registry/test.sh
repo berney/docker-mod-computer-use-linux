@@ -18,6 +18,7 @@ openssl req -x509 -newkey rsa:2048 -nodes -days 1 \
   -addext subjectAltName=DNS:registry.test,IP:127.0.0.1 >/dev/null 2>&1
 chmod a+r "$certs"/*.pem
 
+pull_image docker.io/library/registry:2
 compose up -d registry
 for _ in $(seq 1 30); do
   curl -fsS --cacert "$certs/cert.pem" https://127.0.0.1:5050/v2/ >/dev/null 2>&1 && break

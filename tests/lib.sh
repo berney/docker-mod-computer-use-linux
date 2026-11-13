@@ -21,6 +21,15 @@ if ! docker image inspect "$MOD_IMAGE" >/dev/null; then
   exit 1
 fi
 
+pull_image() {
+  if ! docker image inspect "$1" >/dev/null 2>&1; then
+    "$repo_dir/scripts/retry.sh" docker pull "$1"
+  fi
+}
+
+# Fetch before compose up/build, so registry retries never rerun desktop tests.
+pull_image "$BASE_IMAGE"
+
 # /docker-mods asks registries only for a Docker v2 manifest or an index.
 # podman and Docker 29 (containerd image store) push a single OCI manifest,
 # which the registry then refuses with 404, so push Docker v2 explicitly.

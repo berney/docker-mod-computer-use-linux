@@ -29,12 +29,14 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Check network retry policy
+        run: bash tests/retry/test.sh
       - name: Install goss
         env:
           GOSS_ASSET: ${{ matrix.goss_asset }}
           GOSS_SHA256: ${{ matrix.goss_sha256 }}
         run: |
-          curl -fsSLO "https://github.com/goss-org/goss/releases/download/v0.4.10/$GOSS_ASSET"
+          curl --retry 5 --retry-max-time 180 -fsSLO "https://github.com/goss-org/goss/releases/download/v0.4.10/$GOSS_ASSET"
           echo "$GOSS_SHA256  $GOSS_ASSET" | sha256sum -c
           mkdir -p "$RUNNER_TEMP/bin"
           tar -xzf "$GOSS_ASSET" -C "$RUNNER_TEMP/bin" goss
@@ -62,6 +64,7 @@ jobs:
     name: desktop ${{ matrix.image }} ${{ matrix.mode }}
     strategy:
       fail-fast: false
+      max-parallel: 8
       matrix:
         image:
           - alpine-i3
@@ -99,7 +102,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - name: Install goss
         run: |
-          curl -fsSLO https://github.com/goss-org/goss/releases/download/v0.4.10/goss_0.4.10_linux_x86_64.tar.gz
+          curl --retry 5 --retry-max-time 180 -fsSLO https://github.com/goss-org/goss/releases/download/v0.4.10/goss_0.4.10_linux_x86_64.tar.gz
           echo "26e365428946294bcec0c61d867bb3c8349f39feb3d0e6f59084e98632785cc7  goss_0.4.10_linux_x86_64.tar.gz" | sha256sum -c
           mkdir -p "$RUNNER_TEMP/bin"
           tar -xzf goss_0.4.10_linux_x86_64.tar.gz -C "$RUNNER_TEMP/bin" goss
@@ -118,7 +121,6 @@ jobs:
         env:
           BASE_IMAGE: lscr.io/linuxserver/webtop:${{ matrix.image }}
           PIXELFLUX_WAYLAND: ${{ matrix.mode == 'wayland' && 'true' || 'false' }}
-          EXPECT_WINDOW_CONTROL: ${{ matrix.window_control || '1' }}
         run: tests/sideload/test.sh
 
   publish:

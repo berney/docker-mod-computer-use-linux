@@ -147,7 +147,12 @@ for t in tests/*/test.sh; do "$t"; done
 ```
 
 CI runs each test as its own job on amd64 and arm64.
-It also runs the sideload test on every desktop in the table above, on amd64, with `BASE_IMAGE` and `PIXELFLUX_WAYLAND` set for each:
+It also runs the sideload test on every desktop in the table above, on amd64, with `BASE_IMAGE` and `PIXELFLUX_WAYLAND` set for each.
+Desktop jobs are capped at eight per workflow.
+Fixture image pulls get five attempts with exponential backoff (10, 20, 40 and 80 seconds, plus up to five seconds of jitter); cached images are reused.
+Tests themselves are not retried, and the job fails if the pulls exhaust their attempts.
+
+For example:
 
 ```sh
 BASE_IMAGE=lscr.io/linuxserver/webtop:alpine-i3 PIXELFLUX_WAYLAND=true tests/sideload/test.sh
