@@ -94,12 +94,6 @@ jobs:
           - {image: alpine-kde, mode: x11}
           - {image: arch-kde, mode: x11}
           - {image: fedora-kde, mode: x11}
-        include:
-          # Alpine packages no wmctrl, and these desktops have no window
-          # manager interface of their own.
-          - {image: latest, mode: x11, window_control: '0'}
-          - {image: alpine-mate, mode: x11, window_control: '0'}
-          - {image: alpine-mate, mode: wayland, window_control: '0'}
     runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2

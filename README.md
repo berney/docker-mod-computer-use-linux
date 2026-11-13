@@ -98,17 +98,18 @@ Setting `COMPUTER_USE_LINUX_ENABLE_SHELL=1` turns the MCP server off, because th
   If a process there listens on its own Wayland socket (KWin, labwc or Sway), the server runs on that Wayland desktop; otherwise it runs on X11 (`DISPLAY`), including desktops that run on Xwayland in Wayland mode.
 - X11 window control needs `wmctrl`, which the webtop images do not ship.
   The mod adds it through linuxserver's package installer at container start, which needs network access.
-  Alpine packages it only in edge/testing, so the Alpine xfce and MATE webtops have screenshots and input but no window control; i3, Sway, labwc and KDE use their own interfaces instead.
+  On Alpine, it queues `wmctrl@testing` and keeps the tagged edge/testing repository in `/etc/apk/repositories.d/computer-use-linux.list`, leaving `/etc/apk/repositories` untouched.
+  Mixing Alpine stable and edge/testing is unsupported; the hook prints a warning when it adds the repository.
 
   CI checks every Selkies webtop tag in both modes.
-  The table shows the window-control backends `doctor` reports; every case also has screenshots and input.
+  The table shows the expected window-control backends `doctor` reports; every case also has screenshots and input.
 
   | Webtop        | X11 (`PIXELFLUX_WAYLAND=false`) | Wayland (`PIXELFLUX_WAYLAND=true`) |
   |---------------|---------------------------------|------------------------------------|
-  | `alpine-i3`   | i3                              | i3 (Sway), wlr-foreign-toplevel    |
+  | `alpine-i3`   | i3, X11                         | i3 (Sway), wlr-foreign-toplevel    |
   | `alpine-kde`  | n/a, no X11 session             | KWin                               |
-  | `alpine-mate` | none                            | none (Xwayland)                    |
-  | `latest`      | none                            | labwc, wlr-foreign-toplevel        |
+  | `alpine-mate` | X11                             | X11 (Xwayland)                     |
+  | `latest`      | X11                             | labwc, wlr-foreign-toplevel        |
   | `arch-i3`     | i3, X11                         | i3 (Sway), wlr-foreign-toplevel    |
   | `arch-kde`    | n/a, no X11 session             | KWin                               |
   | `arch-mate`   | X11                             | X11 (Xwayland)                     |
@@ -151,6 +152,9 @@ It also runs the sideload test on every desktop in the table above, on amd64, wi
 ```sh
 BASE_IMAGE=lscr.io/linuxserver/webtop:alpine-i3 PIXELFLUX_WAYLAND=true tests/sideload/test.sh
 ```
+
+`bash tests/package-hook/test.sh` checks the package hook in a disposable Alpine MATE container using a cached image and `podman`.
+It installs the queued package, checks a subsequent APK transaction and queries Marco through `wmctrl` under Xvfb.
 
 ## Licence
 

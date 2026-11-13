@@ -2,10 +2,16 @@
 
 # computer-use-linux lists and focuses X11 windows with wmctrl and xprop.
 # linuxserver's init-mods-package-install installs what this adds to the list.
-# Alpine packages wmctrl only in edge/testing, so Alpine images go without and
-# X11 window control there is limited to i3.
-if command -v wmctrl >/dev/null || [ -f /sbin/apk ]; then
+if command -v wmctrl >/dev/null; then
   exit 0
 fi
-echo "**** computer-use-linux: adding wmctrl to the mod package list ****"
-echo "wmctrl" >>/mod-repo-packages-to-install.list
+package=wmctrl
+if [ -f /sbin/apk ]; then
+  echo "**** computer-use-linux: WARNING: mixing Alpine stable and edge/testing is unsupported ****"
+  mkdir -p /etc/apk/repositories.d || exit 1
+  echo "@testing https://dl-cdn.alpinelinux.org/alpine/edge/testing" \
+    >/etc/apk/repositories.d/computer-use-linux.list || exit 1
+  package=wmctrl@testing
+fi
+echo "**** computer-use-linux: adding ${package} to the mod package list ****"
+echo "$package" >>/mod-repo-packages-to-install.list
